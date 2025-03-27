@@ -1,7 +1,18 @@
 import React, { useState } from "react";
 import "../assets/TopSidebar.css";
 import { Link } from "react-router-dom";
-import { useAuth } from "../AuthContext"; // Importe o contexto de autenticação
+import { useAuth } from "../AuthContext"; 
+import { IonIcon } from '@ionic/react';
+import { 
+  menuOutline, 
+  personOutline, 
+  peopleOutline, 
+  folderOutline, 
+  analyticsOutline, 
+  bookmarkOutline, 
+  syncOutline, 
+  settingsOutline 
+} from 'ionicons/icons';
 
 const Sidebar = ({ isAdmin }) => {
   const [isSidebarVisible, setSidebarVisible] = useState(true);
@@ -14,8 +25,8 @@ const Sidebar = ({ isAdmin }) => {
   return (
     <>
       <div className="topbar">
-        <button className="hamburger-menu" onClick={toggleSidebar}>
-          <ion-icon name="menu-outline"></ion-icon>
+        <button className="topbar-menu" onClick={toggleSidebar}>
+        <IonIcon icon={menuOutline} />
         </button>
       </div>
       <div className={`navigation ${isSidebarVisible ? "" : "hidden"}`}>
@@ -23,7 +34,7 @@ const Sidebar = ({ isAdmin }) => {
           <li>
             <Link to="/dashboard">
               <span className="icon">
-                <ion-icon name="person-outline"></ion-icon>
+              <IonIcon icon={personOutline} />
               </span>
               <span className="title">{isAdmin ? "Admin" : "Meu Perfil"}</span>
             </Link>
@@ -34,7 +45,7 @@ const Sidebar = ({ isAdmin }) => {
               <li>
                 <a href="#">
                   <span className="icon">
-                    <ion-icon name="people-outline"></ion-icon>
+                  <IonIcon icon={peopleOutline} />
                   </span>
                   <span className="title">Gerenciar Usuários</span>
                 </a>
@@ -42,7 +53,7 @@ const Sidebar = ({ isAdmin }) => {
               <li>
                 <a href="#">
                   <span className="icon">
-                    <ion-icon name="folder-outline"></ion-icon>
+                  <IonIcon icon={folderOutline} />
                   </span>
                   <span className="title">Projetos da Comunidade</span>
                 </a>
@@ -50,7 +61,7 @@ const Sidebar = ({ isAdmin }) => {
               <li>
                 <Link to="/analises">
                   <span className="icon">
-                    <ion-icon name="analytics-outline"></ion-icon>
+                  <IonIcon icon={analyticsOutline} />
                   </span>
                   <span className="title">Análises</span>
                 </Link>
@@ -61,7 +72,7 @@ const Sidebar = ({ isAdmin }) => {
               <li>
                 <a href="#">
                   <span className="icon">
-                    <ion-icon name="folder-outline"></ion-icon>
+                  <IonIcon icon={folderOutline} />
                   </span>
                   <span className="title">Meus Projetos</span>
                 </a>
@@ -69,7 +80,7 @@ const Sidebar = ({ isAdmin }) => {
               <li>
                 <a href="#">
                   <span className="icon">
-                    <ion-icon name="bookmark-outline"></ion-icon>
+                  <IonIcon icon={bookmarkOutline} />
                   </span>
                   <span className="title">Tutoriais Favoritos</span>
                 </a>
@@ -77,7 +88,7 @@ const Sidebar = ({ isAdmin }) => {
               <li>
               <Link to="/progresso">
                   <span className="icon">
-                    <ion-icon name="sync-outline"></ion-icon>
+                  <IonIcon icon={syncOutline} />
                   </span>
                   <span className="title">Progresso</span>
                 </Link>
@@ -88,7 +99,7 @@ const Sidebar = ({ isAdmin }) => {
           <li>
             <a href="#">
               <span className="icon">
-                <ion-icon name="settings-outline"></ion-icon>
+              <IonIcon icon={settingsOutline} />
               </span>
               <span className="title">
                 {isAdmin ? "Configurações do Site" : "Configurações"}

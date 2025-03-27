@@ -14,7 +14,6 @@ const AdminDashboard = () => {
   return (
     <div className="dashboard">
       <div className="dashboard__container">
-        {/* Barra de navegação superior */}
         <header>
           <nav className="dashboard__nav">
             <ul className="dashboard__nav-list">
@@ -52,28 +51,11 @@ const AdminDashboard = () => {
           </nav>
         </header>
 
-        {/* Sidebar */}
+    
         <Sidebar isAdmin={true} />
 
-        {/* Conteúdo principal */}
-        <div className="dashboard__main">
-          {/* Cards de métricas */}
-          <div className="dashboard__card-box">
-            <Card title="Acessos Hoje" value="1,200" icon="eye-outline" />
-            <Card title="Novos Usuários" value="350" icon="people-outline" />
-            <Card
-              title="Projetos Submetidos"
-              value="45"
-              icon="folder-outline"
-            />
-            <Card
-              title="Engajamento"
-              value="85%"
-              icon="trending-up-outline"
-            />
-          </div>
 
-          {/* Detalhes (Usuários Recentes e Projetos Recentes) */}
+        <div className="dashboard__main">
           <div className="dashboard__details">
             <RecentUsers />
             <RecentProjects />

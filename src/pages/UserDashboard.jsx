@@ -52,18 +52,11 @@ const UserDashboard = () => {
           </nav>
         </header>
 
-        {/* Sidebar */}
+        
         <Sidebar />
 
-        {/* Conteúdo principal */}
+  
         <div className="dashboard__main">
-          {/* Cards de métricas */}
-          <div className="dashboard__card-box">
-          <Card title="Projetos Ativos" value="5" icon="folder-outline" />
-          <Card title="Tutoriais Favoritos" value="12" icon="bookmark-outline" />
-          <Card title="Progresso Total" value="75%" icon="bar-chart-outline" />
-        </div>
-
         <div className="details">
           <RecentProjects />
           <RecentTutorials />

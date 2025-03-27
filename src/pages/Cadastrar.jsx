@@ -2,10 +2,11 @@ import "../assets/Cadastrar.css";
 import logo from "../assets/img/logoDev.png";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { addUser } from "../components/mockBackend"; // Certifique-se de que esta função está definida
+import { addUser } from "../components/mockBackend";
 
 const Cadastrar = () => {
   const [usuario, setUsuario] = useState("");
+  const [email, setEmail] = useState("");
   const [senha, setSenha] = useState("");
   const [repetirSenha, setRepetirSenha] = useState("");
   const [regrasSenha, setRegrasSenha] = useState({
@@ -17,6 +18,7 @@ const Cadastrar = () => {
   });
   const [senhasIguais, setSenhasIguais] = useState(false);
   const [erroUsuario, setErroUsuario] = useState("");
+  const [erroEmail, setErroEmail] = useState("");
   const navigate = useNavigate();
 
   const validarSenha = (senha) => {
@@ -28,6 +30,11 @@ const Cadastrar = () => {
     return usuario.length >= 5 && usuario.length <= 15;
   };
 
+  const validarEmail = (email) => {
+    const padraoEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return padraoEmail.test(email);
+  };
+
   const handleUsuarioChange = (e) => {
     const novoUsuario = e.target.value;
     setUsuario(novoUsuario);
@@ -36,6 +43,17 @@ const Cadastrar = () => {
       setErroUsuario("O nome de usuário deve ter entre 5 e 15 caracteres.");
     } else {
       setErroUsuario("");
+    }
+  };
+
+  const handleEmailChange = (e) => {
+    const novoEmail = e.target.value;
+    setEmail(novoEmail);
+
+    if (!validarEmail(novoEmail)) {
+      setErroEmail("Por favor, insira um email válido.");
+    } else {
+      setErroEmail("");
     }
   };
 
@@ -52,7 +70,6 @@ const Cadastrar = () => {
     };
   
     setRegrasSenha(novasRegras);
-    console.log("Regras da senha:", novasRegras); // Depuração
   
     if (repetirSenha) {
       setSenhasIguais(novaSenha === repetirSenha);
@@ -68,9 +85,9 @@ const Cadastrar = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (validarUsuario(usuario) && validarSenha(senha) && senhasIguais) {
-      // Adiciona o usuário com o papel de "user" (usuário comum)
-      addUser(usuario, senha, "user"); // Adiciona o role "user"
+    if (validarUsuario(usuario) && validarEmail(email) && validarSenha(senha) && senhasIguais) {
+      // Adiciona o usuário com nome, email e senha
+      addUser(usuario, email, senha, "user");
       navigate("/login");
     }
   };
@@ -109,6 +126,17 @@ const Cadastrar = () => {
             required
           />
           {erroUsuario && <p style={{ color: "red" }}>{erroUsuario}</p>}
+          
+          <input
+            className="cadastrar__input"
+            type="email"
+            placeholder="Email"
+            value={email}
+            onChange={handleEmailChange}
+            required
+          />
+          {erroEmail && <p style={{ color: "red" }}>{erroEmail}</p>}
+          
           <input
             className="cadastrar__input"
             type="password"

@@ -1,0 +1,98 @@
+/* Login.css */
+body {
+  background: linear-gradient(to right, #8b32f4, #5320a6);
+  margin: 0;
+}
+
+.login__nav {
+  padding: 15px 0;
+  position: fixed;
+  width: 100%;
+  top: 0;
+  left: 0;
+  box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+  z-index: 1000;
+  transition: background-color 0.3s ease;
+  backdrop-filter: blur(20px);
+  color: #f3f3f3;
+}
+
+.login__logo {
+  width: 1000px;
+}
+
+.login__nav-list {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  list-style: none;
+}
+
+.login__nav-item {
+  margin-right: 20px;
+  margin-left: 20px;
+}
+
+.login__nav-link {
+  color: #f3f3f3;
+  text-decoration: none;
+  font-weight: bold;
+  font-size: 25px;
+  transition: color 0.3s ease;
+}
+
+.login__nav-link:hover {
+  color: #5320a6;
+}
+
+.login__box {
+  width: 500px;
+  padding: 50px;
+  margin: 220px auto;
+  background-color: #f3f3f3;
+  box-shadow: 0px 5px 5px 5px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  border-radius: 5px;
+}
+
+.login__title {
+  margin-bottom: 20px;
+  color: #8b32f4;
+}
+
+.login__input {
+  width: 100%;
+  padding: 10px;
+  margin: 10px 0;
+  border: 1px solid #ccc;
+  border-radius: 5px;
+  background-color: transparent;
+  color: #0e0d0d;
+}
+
+.login__input::placeholder {
+  color: #7c7f81;
+}
+
+.login__link {
+  text-decoration: none;
+  color: #8b32f4;
+}
+
+.login__link:hover {
+  color: #5320a6;
+}
+
+.login__btn {
+  padding: 10px 20px;
+  background-color: #8b32f4;
+  color: #f3f3f3;
+  border-radius: 20px;
+  border: none;
+  cursor: pointer;
+}
+
+.login__btn:hover {
+  background-color: #5320a6;
+}
+

@@ -15,18 +15,14 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-
-    const user = findUser(username, password);
-
+  
+    const user = findUser(username, password); // Agora username é o email
+  
     if (user) {
-      login(user.role); // Atualiza o estado de autenticação
-      if (username === "admin" && password === "Admin@123") {
-        navigate("/dashboard"); // Redireciona para o AdminDashboard
-      } else {
-        navigate("/dashboard"); // Redireciona para o UserDashboard
-      }
+      login(user.role);
+      navigate("/dashboard");
     } else {
-      setError("Usuário ou senha incorretos.");
+      setError("Email ou senha incorretos.");
     }
   };
 

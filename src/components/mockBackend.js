@@ -1,27 +1,83 @@
 // mockBackend.js
 
-// Simulação de um banco de dados de usuários
 let users = [
-  { username: "admin", password: "Admin@123", role: "admin" }, // Usuário admin padrão
+  { 
+    id: 1, 
+    username: "joao123", 
+    name: "João Silva", 
+    email: "joao@example.com", 
+    password: "Joao@123", 
+    role: "user", 
+    registrationDate: "10/10/2023" 
+  },
+  { 
+    id: 2, 
+    username: "maria456", 
+    name: "Maria Souza", 
+    email: "maria@example.com", 
+    password: "Maria@123", 
+    role: "user", 
+    registrationDate: "09/10/2023" 
+  },
+  { 
+    id: 3, 
+    username: "admin", 
+    email: "admin",
+    password: "Admin@123", 
+    role: "admin" 
+  }
 ];
 
-// Função para adicionar um novo usuário
-const addUser = (username, password, role) => {
-  const newUser = {
-    username,
-    password,
-    role, // Adiciona o papel do usuário (admin ou user)
-  };
-  users.push(newUser); // Adiciona o novo usuário à lista
-  console.log("Usuário cadastrado:", newUser); // Exibe no console para depuração
+// Função para obter todos os usuários (exceto admin)
+const getUsers = () => {
+  return users.filter(user => user.role !== "admin");
 };
 
-// Função para encontrar um usuário pelo username e password
-const findUser = (username, password) => {
+// Função para adicionar um novo usuário
+const addUser = (username, email, password, role = "user") => {
+  // Gera um nome baseado no email (parte antes do @)
+  const name = email.split('@')[0];
+  
+  const newUser = {
+    id: users.length + 1,
+    username,
+    name,
+    email,
+    password,
+    role,
+    registrationDate: new Date().toLocaleDateString('pt-BR')
+  };
+  
+  users.push(newUser);
+  return newUser;
+};
+
+// Função para encontrar um usuário pelo email e password
+const findUser = (email, password) => {
   return users.find(
-    (user) => user.username === username && user.password === password
+    (user) => user.email === email && user.password === password
   );
 };
 
-// Exporta as funções para uso em outros arquivos
-export { addUser, findUser };
+// Função para editar um usuário
+const editUser = (id, username, email) => {
+  const userIndex = users.findIndex(user => user.id === id);
+  if (userIndex !== -1) {
+    users[userIndex] = {
+      ...users[userIndex],
+      username,
+      email,
+      name: email.split('@')[0] // Atualiza o nome baseado no novo email
+    };
+    return users[userIndex];
+  }
+  return null;
+};
+
+// Função para excluir um usuário
+const deleteUser = (id) => {
+  users = users.filter(user => user.id !== id);
+  return true;
+};
+
+export { getUsers, addUser, findUser, editUser, deleteUser };
