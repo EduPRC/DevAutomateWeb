@@ -6,7 +6,7 @@ let users = [
     username: " dani mattos", 
     name: " dani mattos ", 
     email: "dani@example.com", 
-    password: "dani@123", 
+    password: "Dani@123", 
     role: "user", 
     registrationDate: "09/10/2023" 
   },

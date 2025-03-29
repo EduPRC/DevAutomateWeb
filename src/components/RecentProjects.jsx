@@ -1,4 +1,3 @@
-// src/components/RecentProjects.jsx
 import React, { useState, useEffect } from "react";
 import { getData, saveData, addItem, updateItem, deleteItem, getAllUserData } from "../services/crudService";
 import { useAuth } from "../AuthContext";
@@ -9,7 +8,7 @@ const RecentProjects = ({ adminView = false }) => {
   const [newProject, setNewProject] = useState({ title: "", description: "" });
   const [editingId, setEditingId] = useState(null);
   const [allUserProjects, setAllUserProjects] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [searchText, setSearchText] = useState("");
   const [usersList, setUsersList] = useState([]);
   
   // Get the current user from context
@@ -54,29 +53,53 @@ const RecentProjects = ({ adminView = false }) => {
     }
   }, [currentUser, isAuthenticated, adminView]);
 
-  // Calculate total pages
-  const totalPages = Math.ceil(
-    adminView 
-      ? (selectedUser 
-          ? allUserProjects.filter(p => p.userId === selectedUser).length 
-          : allUserProjects.length) 
-      : projects.length
-    ) / itemsPerPage;
+  // Função para verificar se um texto contém uma aproximação
+  const matchesApproximately = (text, query) => {
+    if (!query) return true;
+    if (!text) return false;
+
+    // Converte para minúsculas para fazer busca case-insensitive
+    const normalizedText = text.toLowerCase();
+    const normalizedQuery = query.toLowerCase();
+
+    // Verifica se o texto contém a consulta
+    return normalizedText.includes(normalizedQuery);
+  };
+
+  // Filtra projetos baseado no texto de busca
+  const getFilteredProjects = () => {
+    if (adminView) {
+      if (!searchText.trim()) {
+        return allUserProjects;
+      }
+      
+      return allUserProjects.filter(project => 
+        matchesApproximately(project.userName, searchText) || 
+        matchesApproximately(project.title, searchText) ||
+        matchesApproximately(project.description, searchText)
+      );
+    } else {
+      // Filtro para projetos do usuário
+      if (!searchText.trim()) {
+        return projects;
+      }
+      
+      return projects.filter(project => 
+        matchesApproximately(project.title, searchText) ||
+        matchesApproximately(project.description, searchText)
+      );
+    }
+  };
+
+  // Calculate total pages based on filtered projects
+  const filteredProjects = getFilteredProjects();
+  const totalPages = Math.ceil(filteredProjects.length / itemsPerPage);
 
   // Get projects for current page
   const getCurrentPageProjects = () => {
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    
-    if (adminView) {
-      const filteredProjects = selectedUser
-        ? allUserProjects.filter(p => p.userId === selectedUser)
-        : allUserProjects;
-      
-      return filteredProjects.slice(startIndex, endIndex);
-    } else {
-      return projects.slice(startIndex, endIndex);
-    }
+    return filteredProjects.slice(startIndex, endIndex);
   };
 
   // Navigate to previous page
@@ -93,13 +116,25 @@ const RecentProjects = ({ adminView = false }) => {
     }
   };
 
+  // Reset to first page when filter changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchText]);
+
   const handleAddProject = () => {
     if (!isAuthenticated || !currentUser) {
       alert("Você precisa estar logado para adicionar projetos.");
       return;
     }
-    
-    if (newProject.title.trim() === "") return;
+    if (newProject.title.trim() === "") {
+      alert("O título do projeto não pode estar vazio!");
+      return;
+    }
+
+    if (newProject.description.trim() === "") {
+      alert("A descrição do projeto não pode estar vazio!");
+      return;
+    }
 
     // Create a user-specific key for storing projects
     const userProjectsKey = "projects";
@@ -146,9 +181,9 @@ const RecentProjects = ({ adminView = false }) => {
     }
   };
 
-  const handleUserFilterChange = (e) => {
-    setSelectedUser(e.target.value ? parseInt(e.target.value) : null);
-    setCurrentPage(1);
+  // Manipula mudanças no campo de busca
+  const handleSearchChange = (e) => {
+    setSearchText(e.target.value);
   };
 
   // Projects for current page
@@ -159,19 +194,16 @@ const RecentProjects = ({ adminView = false }) => {
       <div className="recent-projects admin-view">
         <h2>Projetos de Todos os Usuários</h2>
         
-        {/* Filter for admin to select user */}
-        <div className="user-filter">
-          <label htmlFor="userFilter">Filtrar por usuário: </label>
-          <select 
-            id="userFilter" 
-            value={selectedUser || ''} 
-            onChange={handleUserFilterChange}
-          >
-            <option value="">Todos os usuários</option>
-            {usersList.map(user => (
-              <option key={user.id} value={user.id}>{user.name}</option>
-            ))}
-          </select>
+        {/* Filtro de texto para admin */}
+        <div className="search-filter">
+          <label htmlFor="searchFilter">Buscar usuários ou projetos: </label>
+          <input 
+            type="text" 
+            id="searchFilter" 
+            value={searchText} 
+            onChange={handleSearchChange}
+            placeholder="Digite para filtrar usuários ou projetos..."
+          />
         </div>
         
         {/* Projects list for admin view */}
@@ -192,7 +224,7 @@ const RecentProjects = ({ adminView = false }) => {
         </div>
         
         {/* Pagination controls */}
-        {allUserProjects.length > 0 && (
+        {filteredProjects.length > 0 && (
           <div className="pagination-controls">
             <button 
               onClick={goToPreviousPage} 
@@ -258,10 +290,26 @@ const RecentProjects = ({ adminView = false }) => {
         )}
       </div>
       
+      {/* Filtro de texto para usuário regular */}
+      <div className="search-filter">
+        <label htmlFor="userSearchFilter">Buscar projetos: </label>
+        <input 
+          type="text" 
+          id="userSearchFilter" 
+          value={searchText} 
+          onChange={handleSearchChange}
+          placeholder="Digite para filtrar seus projetos..."
+        />
+      </div>
+      
       {/* Projects list */}
       <div className="projects-list">
         {currentProjects.length === 0 ? (
-          <p>Nenhum projeto encontrado. Adicione seu primeiro projeto!</p>
+          searchText ? (
+            <p>Nenhum projeto encontrado para sua busca. Tente outros termos.</p>
+          ) : (
+            <p>Nenhum projeto encontrado. Adicione seu primeiro projeto!</p>
+          )
         ) : (
           currentProjects.map(project => (
             <div key={project.id} className="project-item">
@@ -277,7 +325,7 @@ const RecentProjects = ({ adminView = false }) => {
       </div>
       
       {/* Pagination controls */}
-      {projects.length > 0 && (
+      {filteredProjects.length > 0 && (
         <div className="pagination-controls">
           <button 
             onClick={goToPreviousPage} 
