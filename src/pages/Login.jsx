@@ -15,27 +15,28 @@ const Login = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-  
+
     const user = findUser(email, password);
-  
+
     if (user) {
       // Store user in localStorage (without the password)
       const userToStore = { ...user };
       delete userToStore.password;
-      localStorage.setItem('currentUser', JSON.stringify(userToStore));
-      
+      localStorage.setItem("currentUser", JSON.stringify(userToStore));
+
       // Call context login with role and user object
       login(user.role, userToStore);
-    
-    // Redirect based on user role
-    if (user.role === "admin") {
-      navigate("/admin-dashboard");
+
+      // Redirect based on user role
+      if (user.role === "admin") {
+        navigate("/admin-dashboard");
+      } else {
+        navigate("/dashboard");
+      }
     } else {
-      navigate("/dashboard");
+      setError("Email ou senha incorretos.");
     }
-  } else {
-    setError("Email ou senha incorretos.");
-  }
+
   };
 
   return (
@@ -47,14 +48,20 @@ const Login = () => {
               <img className="login__logo" src={logo} alt="Logo DevAutomate" />
             </li>
             <li className="login__nav-item">
-              <Link to={"/home"} className="login__nav-link">Home</Link>
-            </li >
+              <Link to={"/home"} className="login__nav-link">
+                Home
+              </Link>
+            </li>
             <li className="login__nav-item">
-              <Link to={"/login"}className="login__nav-link">Login</Link>
+              <Link to={"/login"} className="login__nav-link">
+                Login
+              </Link>
             </li>
             <p>|</p>
             <li className="login__nav-item">
-              <Link to={"/cadastrar"}className="login__nav-link">Cadastrar</Link>
+              <Link to={"/cadastrar"} className="login__nav-link">
+                Cadastrar
+              </Link>
             </li>
           </ul>
         </nav>
@@ -67,7 +74,7 @@ const Login = () => {
             type="text"
             placeholder="Email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => setEmail(e.target.value.toLowerCase().trim())} 
             required
             className="login__input"
           />
@@ -80,10 +87,15 @@ const Login = () => {
             className="login__input"
           />
           {error && <p className="login__error">{error}</p>}
-          <button className="login__btn" type="submit">Entrar</button>
+          <button className="login__btn" type="submit">
+            Entrar
+          </button>
         </form>
         <p>
-          Ainda não tem conta? <Link to="/cadastrar" className="login__link">Cadastre-se</Link>
+          Ainda não tem conta?{" "}
+          <Link to="/cadastrar" className="login__link">
+            Cadastre-se
+          </Link>
         </p>
       </div>
     </div>

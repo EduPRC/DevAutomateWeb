@@ -47,12 +47,11 @@ const Cadastrar = () => {
   };
 
   const handleEmailChange = (e) => {
-    const novoEmail = e.target.value;
+    const novoEmail = (e.target.value.toLowerCase().replace(/\s/g, "").trim()); // Remove todos os espaços
     setEmail(novoEmail);
-    
-    // Limpa o erro quando o usuário modifica o email
+  
     setErroEmail("");
-
+  
     if (!validarEmail(novoEmail)) {
       setErroEmail("Por favor, insira um email válido.");
     }
@@ -164,6 +163,7 @@ const Cadastrar = () => {
             onChange={handleEmailChange}
             required
           />
+         
           {erroEmail && <p style={{ color: "red" }}>{erroEmail}</p>}
           
           <input
