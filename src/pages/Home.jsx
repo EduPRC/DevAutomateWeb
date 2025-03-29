@@ -13,10 +13,10 @@ import Sidebar from "../components/Sidebar";
 import { useAuth } from "../AuthContext";
 
 const Home = () => {
-  const { logout } = useAuth();
+  const { logout, role } = useAuth();
   return (
     <div>
-      <Sidebar isAdmin={false} />
+      <Sidebar isAdmin={role === "admin"} />
       <header>
         <nav className="home__nav">
           <ul className="home__nav-list">

@@ -2,7 +2,7 @@ import "../assets/Cadastrar.css";
 import logo from "../assets/img/logoDev.png";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { addUser } from "../components/mockBackend";
+import { addUser, checkEmailExists } from "../services/mockBackend";
 
 const Cadastrar = () => {
   const [usuario, setUsuario] = useState("");
@@ -49,11 +49,12 @@ const Cadastrar = () => {
   const handleEmailChange = (e) => {
     const novoEmail = e.target.value;
     setEmail(novoEmail);
+    
+    // Limpa o erro quando o usuário modifica o email
+    setErroEmail("");
 
     if (!validarEmail(novoEmail)) {
       setErroEmail("Por favor, insira um email válido.");
-    } else {
-      setErroEmail("");
     }
   };
 
@@ -85,10 +86,38 @@ const Cadastrar = () => {
   const handleSubmit = (e) => {
     e.preventDefault();
 
-    if (validarUsuario(usuario) && validarEmail(email) && validarSenha(senha) && senhasIguais) {
-      // Adiciona o usuário com nome, email e senha
-      addUser(usuario, email, senha, "user");
+    // Verifica se os campos foram preenchidos corretamente
+    if (!validarUsuario(usuario)) {
+      setErroUsuario("O nome de usuário deve ter entre 5 e 15 caracteres.");
+      return;
+    }
+    
+    if (!validarEmail(email)) {
+      setErroEmail("Por favor, insira um email válido.");
+      return;
+    }
+    
+    if (!validarSenha(senha)) {
+      return; // As mensagens de erro já estão sendo exibidas nos indicadores de regras
+    }
+    
+    if (!senhasIguais) {
+      return; // A mensagem de erro já está sendo exibida nos indicadores de regras
+    }
+
+    // Verifica se o email já está cadastrado
+    if (checkEmailExists(email)) {
+      setErroEmail("Este email já está cadastrado.");
+      return;
+    }
+
+    // Adiciona o usuário com nome, email e senha
+    const resultado = addUser(usuario, email, senha, "user");
+    
+    if (resultado.success) {
       navigate("/login");
+    } else if (resultado.error === "EMAIL_EXISTS") {
+      setErroEmail("Este email já está cadastrado.");
     }
   };
 

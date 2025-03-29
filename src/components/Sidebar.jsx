@@ -32,12 +32,12 @@ const Sidebar = ({ isAdmin }) => {
       <div className={`navigation ${isSidebarVisible ? "" : "hidden"}`}>
         <ul>
           <li>
-            <Link to="/dashboard">
+          <a href="#">
               <span className="icon">
               <IonIcon icon={personOutline} />
               </span>
               <span className="title">{isAdmin ? "Admin" : "Meu Perfil"}</span>
-            </Link>
+              </a>
           </li>
 
           {isAdmin ? (
@@ -48,7 +48,7 @@ const Sidebar = ({ isAdmin }) => {
                   <IonIcon icon={peopleOutline} />
                   </span>
                   <span className="title">Gerenciar Usuários</span>
-                </a>
+                  </a>
               </li>
               <li>
                 <a href="#">
@@ -70,12 +70,12 @@ const Sidebar = ({ isAdmin }) => {
           ) : (
             <>
               <li>
-                <a href="#">
+              <Link to="/dashboard">
                   <span className="icon">
                   <IonIcon icon={folderOutline} />
                   </span>
                   <span className="title">Meus Projetos</span>
-                </a>
+                </Link>
               </li>
               <li>
                 <a href="#">

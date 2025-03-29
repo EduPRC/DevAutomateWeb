@@ -3,27 +3,39 @@ import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../assets/Login.css";
 import logo from "../assets/img/logoDev.png";
-import { findUser } from "../components/mockBackend";
-import { useAuth } from "../AuthContext"; // Importe o contexto de autenticação
+import { findUser } from "../services/mockBackend";
+import { useAuth } from "../AuthContext"; // Import the authentication context
 
 const Login = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState(""); // Changed from username to email for clarity
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login } = useAuth(); // Use a função de login do contexto
+  const { login } = useAuth(); // Use the login function from context
 
   const handleSubmit = (e) => {
     e.preventDefault();
   
-    const user = findUser(username, password); // Agora username é o email
+    const user = findUser(email, password);
   
     if (user) {
-      login(user.role);
-      navigate("/dashboard");
+      // Store user in localStorage (without the password)
+      const userToStore = { ...user };
+      delete userToStore.password;
+      localStorage.setItem('currentUser', JSON.stringify(userToStore));
+      
+      // Call context login with role and user object
+      login(user.role, userToStore);
+    
+    // Redirect based on user role
+    if (user.role === "admin") {
+      navigate("/admin-dashboard");
     } else {
-      setError("Email ou senha incorretos.");
+      navigate("/dashboard");
     }
+  } else {
+    setError("Email ou senha incorretos.");
+  }
   };
 
   return (
@@ -53,9 +65,9 @@ const Login = () => {
         <form onSubmit={handleSubmit}>
           <input
             type="text"
-            placeholder="Usuário"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
+            placeholder="Email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
             required
             className="login__input"
           />
@@ -67,7 +79,7 @@ const Login = () => {
             required
             className="login__input"
           />
-          {error && <p>{error}</p>}
+          {error && <p className="login__error">{error}</p>}
           <button className="login__btn" type="submit">Entrar</button>
         </form>
         <p>

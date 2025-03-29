@@ -1,227 +1,305 @@
-import React, { useState } from "react";
+// src/components/RecentProjects.jsx
+import React, { useState, useEffect } from "react";
+import { getData, saveData, addItem, updateItem, deleteItem, getAllUserData } from "../services/crudService";
+import { useAuth } from "../AuthContext";
+import { getUsers } from "../services/mockBackend";
 
-const RecentProjects = () => {
-  const [projects, setProjects] = useState([
-    { id: 1, name: "Projeto 1", progress: 50, lastUpdate: "10/10/2023" },
-    { id: 2, name: "Projeto 2", progress: 80, lastUpdate: "09/10/2023" }
-  ]);
-
-  const [showAddModal, setShowAddModal] = useState(false);
+const RecentProjects = ({ adminView = false }) => {
+  const [projects, setProjects] = useState([]);
+  const [newProject, setNewProject] = useState({ title: "", description: "" });
   const [editingId, setEditingId] = useState(null);
-  const [editData, setEditData] = useState({ name: "", progress: "" });
-  const [newProject, setNewProject] = useState({ 
-    name: "", 
-    progress: "", 
-    lastUpdate: new Date().toLocaleDateString('pt-BR') 
-  });
+  const [allUserProjects, setAllUserProjects] = useState([]);
+  const [selectedUser, setSelectedUser] = useState(null);
+  const [usersList, setUsersList] = useState([]);
+  
+  // Get the current user from context
+  const { currentUser, isAuthenticated } = useAuth();
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 5;
 
-  // Adicionar novo projeto (modal)
-  const handleAddClick = () => {
-    setShowAddModal(true);
-  };
+  // Load user's projects when component mounts or user changes
+  useEffect(() => {
+    if (adminView) {
+      // Load all users for admin view
+      setUsersList(getUsers());
+      
+      // Load all user projects for admin view
+      const allProjects = getAllUserData("projects");
+      const formattedProjects = [];
+      
+      // Convert the object to an array of projects with user info
+      Object.keys(allProjects).forEach(userId => {
+        const user = getUsers().find(u => u.id.toString() === userId);
+        if (user) {
+          allProjects[userId].forEach(project => {
+            formattedProjects.push({
+              ...project,
+              userName: user.name,
+              userId: user.id
+            });
+          });
+        }
+      });
+      
+      setAllUserProjects(formattedProjects);
+    } else if (currentUser && isAuthenticated) {
+      // For regular user view, load only their projects
+      const userProjectsKey = "projects";
+      const storedProjects = getData(userProjectsKey, [], currentUser.id);
+      setProjects(storedProjects);
+    } else {
+      setProjects([]);
+    }
+  }, [currentUser, isAuthenticated, adminView]);
 
-  const handleAddInputChange = (e) => {
-    const { name, value } = e.target;
-    setNewProject(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
+  // Calculate total pages
+  const totalPages = Math.ceil(
+    adminView 
+      ? (selectedUser 
+          ? allUserProjects.filter(p => p.userId === selectedUser).length 
+          : allUserProjects.length) 
+      : projects.length
+    ) / itemsPerPage;
 
-  const handleAddProject = () => {
-    const project = {
-      id: projects.length + 1,
-      name: newProject.name,
-      progress: parseInt(newProject.progress),
-      lastUpdate: new Date().toLocaleDateString('pt-BR')
-    };
-    setProjects([...projects, project]);
-    setShowAddModal(false);
-    setNewProject({ name: "", progress: "", lastUpdate: new Date().toLocaleDateString('pt-BR') });
-  };
-
-  // Editar projeto (inline)
-  const handleEditClick = (id) => {
-    setEditingId(id);
-    const project = projects.find(p => p.id === id);
-    setEditData({
-      name: project.name,
-      progress: project.progress.toString()
-    });
-  };
-
-  const handleEditInputChange = (e) => {
-    const { name, value } = e.target;
-    setEditData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSaveEdit = (id) => {
-    setProjects(projects.map(project => 
-      project.id === id ? { 
-        ...project, 
-        name: editData.name, 
-        progress: parseInt(editData.progress),
-        lastUpdate: new Date().toLocaleDateString('pt-BR')
-      } : project
-    ));
-    setEditingId(null);
-  };
-
-  const handleCancelEdit = () => {
-    setEditingId(null);
-  };
-
-  // Excluir projeto
-  const handleDelete = (id) => {
-    if (window.confirm("Tem certeza que deseja excluir este projeto?")) {
-      setProjects(projects.filter(project => project.id !== id));
+  // Get projects for current page
+  const getCurrentPageProjects = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    
+    if (adminView) {
+      const filteredProjects = selectedUser
+        ? allUserProjects.filter(p => p.userId === selectedUser)
+        : allUserProjects;
+      
+      return filteredProjects.slice(startIndex, endIndex);
+    } else {
+      return projects.slice(startIndex, endIndex);
     }
   };
 
-  return (
-    <div className="recentOrders">
-      {/* Modal para adicionar projeto */}
-      {showAddModal && (
-        <div className="modal-overlay">
-          <div className="modal-content">
-            <h2>Adicionar Novo Projeto</h2>
+  // Navigate to previous page
+  const goToPreviousPage = () => {
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
+    }
+  };
+
+  // Navigate to next page
+  const goToNextPage = () => {
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
+    }
+  };
+
+  const handleAddProject = () => {
+    if (!isAuthenticated || !currentUser) {
+      alert("Você precisa estar logado para adicionar projetos.");
+      return;
+    }
+    
+    if (newProject.title.trim() === "") return;
+
+    // Create a user-specific key for storing projects
+    const userProjectsKey = "projects";
+
+    if (editingId !== null) {
+      // Update existing project
+      updateItem(userProjectsKey, editingId, newProject, currentUser.id);
+      setEditingId(null);
+    } else {
+      // Add new project
+      addItem(userProjectsKey, newProject, currentUser.id);
+    }
+
+    // Reload the list after changes
+    setProjects(getData(userProjectsKey, [], currentUser.id));
+    setNewProject({ title: "", description: "" });
+  };
+
+  const handleEditProject = (id) => {
+    const projectToEdit = projects.find(project => project.id === id);
+    if (projectToEdit) {
+      setNewProject({ title: projectToEdit.title, description: projectToEdit.description });
+      setEditingId(id);
+    }
+  };
+
+  const handleDeleteProject = (id) => {
+    if (!isAuthenticated || !currentUser) return;
+    
+    if (window.confirm("Tem certeza que deseja excluir este projeto?")) {
+      // Create a user-specific key for storing projects
+      const userProjectsKey = "projects";
+      
+      deleteItem(userProjectsKey, id, currentUser.id);
+      
+      // Reload projects
+      const updatedProjects = getData(userProjectsKey, [], currentUser.id);
+      setProjects(updatedProjects);
+      
+      // Adjust current page if needed
+      if (currentPage > 1 && getCurrentPageProjects().length === 0) {
+        setCurrentPage(currentPage - 1);
+      }
+    }
+  };
+
+  const handleUserFilterChange = (e) => {
+    setSelectedUser(e.target.value ? parseInt(e.target.value) : null);
+    setCurrentPage(1);
+  };
+
+  // Projects for current page
+  const currentProjects = getCurrentPageProjects();
+
+  if (adminView) {
+    return (
+      <div className="recent-projects admin-view">
+        <h2>Projetos de Todos os Usuários</h2>
+        
+        {/* Filter for admin to select user */}
+        <div className="user-filter">
+          <label htmlFor="userFilter">Filtrar por usuário: </label>
+          <select 
+            id="userFilter" 
+            value={selectedUser || ''} 
+            onChange={handleUserFilterChange}
+          >
+            <option value="">Todos os usuários</option>
+            {usersList.map(user => (
+              <option key={user.id} value={user.id}>{user.name}</option>
+            ))}
+          </select>
+        </div>
+        
+        {/* Projects list for admin view */}
+        <div className="projects-list">
+          {currentProjects.length === 0 ? (
+            <p>Nenhum projeto encontrado.</p>
+          ) : (
+            currentProjects.map(project => (
+              <div key={project.id} className="project-item">
+                <h3>{project.title}</h3>
+                <p>{project.description}</p>
+                <div className="project-meta">
+                  <span className="user-tag">Usuário: {project.userName}</span>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        
+        {/* Pagination controls */}
+        {allUserProjects.length > 0 && (
+          <div className="pagination-controls">
+            <button 
+              onClick={goToPreviousPage} 
+              disabled={currentPage === 1}
+              className={`pagination-button ${currentPage === 1 ? 'disabled' : ''}`}
+            >
+              Anterior
+            </button>
             
-            <div className="form-group">
-              <label htmlFor="new-project-name">Nome do Projeto:</label>
-              <input
-                id="new-project-name"
-                type="text"
-                name="name"
-                value={newProject.name}
-                onChange={handleAddInputChange}
-                required
-                placeholder="Nome do Projeto"
-              />
-            </div>
+            <span className="pagination-info">
+              Página {currentPage} de {totalPages}
+            </span>
             
-            <div className="form-group">
-              <label htmlFor="new-project-progress">Progresso (%):</label>
-              <input
-                id="new-project-progress"
-                type="number"
-                name="progress"
-                min="0"
-                max="100"
-                value={newProject.progress}
-                onChange={handleAddInputChange}
-                required
-                placeholder="Progresso (%)"
-              />
-            </div>
-            
-            <div className="modal-actions">
-              <button className="btn cancel" onClick={() => setShowAddModal(false)}>
-                Cancelar
-              </button>
-              <button className="btn save" onClick={handleAddProject}>
-                Adicionar
-              </button>
-            </div>
+            <button 
+              onClick={goToNextPage} 
+              disabled={currentPage === totalPages}
+              className={`pagination-button ${currentPage === totalPages ? 'disabled' : ''}`}
+            >
+              Próxima
+            </button>
           </div>
+        )}
+      </div>
+    );
+  }
+
+  if (!isAuthenticated || !currentUser) {
+    return (
+      <div className="recent-projects">
+        <h2>Projetos Recentes</h2>
+        <p>Faça login para visualizar seus projetos.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="recent-projects">
+      <h2>Projetos Recentes de {currentUser.name}</h2>
+      
+      {/* Form to add/edit project */}
+      <div className="project-form">
+        <input 
+          type="text" 
+          placeholder="Título do projeto" 
+          value={newProject.title}
+          onChange={(e) => setNewProject({...newProject, title: e.target.value})}
+        />
+        <textarea 
+          placeholder="Descrição do projeto" 
+          value={newProject.description}
+          onChange={(e) => setNewProject({...newProject, description: e.target.value})}
+        />
+        <button onClick={handleAddProject}>
+          {editingId !== null ? "Atualizar Projeto" : "Adicionar Projeto"}
+        </button>
+        {editingId !== null && (
+          <button onClick={() => {
+            setEditingId(null);
+            setNewProject({ title: "", description: "" });
+          }}>
+            Cancelar
+          </button>
+        )}
+      </div>
+      
+      {/* Projects list */}
+      <div className="projects-list">
+        {currentProjects.length === 0 ? (
+          <p>Nenhum projeto encontrado. Adicione seu primeiro projeto!</p>
+        ) : (
+          currentProjects.map(project => (
+            <div key={project.id} className="project-item">
+              <h3>{project.title}</h3>
+              <p>{project.description}</p>
+              <div className="project-actions">
+                <button onClick={() => handleEditProject(project.id)}>Editar</button>
+                <button onClick={() => handleDeleteProject(project.id)}>Excluir</button>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      
+      {/* Pagination controls */}
+      {projects.length > 0 && (
+        <div className="pagination-controls">
+          <button 
+            onClick={goToPreviousPage} 
+            disabled={currentPage === 1}
+            className={`pagination-button ${currentPage === 1 ? 'disabled' : ''}`}
+          >
+            Anterior
+          </button>
+          
+          <span className="pagination-info">
+            Página {currentPage} de {totalPages}
+          </span>
+          
+          <button 
+            onClick={goToNextPage} 
+            disabled={currentPage === totalPages}
+            className={`pagination-button ${currentPage === totalPages ? 'disabled' : ''}`}
+          >
+            Próxima
+          </button>
         </div>
       )}
-
-      <div className="cardHeader">
-        <h2>Meus Projetos</h2>
-        <button className="bnt" onClick={handleAddClick}>
-          Adicionar Projeto
-        </button>
-      </div>
-
-      <table>
-        <thead>
-          <tr>
-            <th>Nome do Projeto</th>
-            <th>Progresso</th>
-            <th>Última Atualização</th>
-            <th>Ações</th>
-          </tr>
-        </thead>
-
-        <tbody>
-          {projects.map((project) => (
-            <tr key={project.id}>
-              <td>
-                {editingId === project.id ? (
-                  <input
-                    type="text"
-                    name="name"
-                    value={editData.name}
-                    onChange={handleEditInputChange}
-                  />
-                ) : (
-                  project.name
-                )}
-              </td>
-              <td>
-                {editingId === project.id ? (
-                  <input
-                    type="number"
-                    name="progress"
-                    min="0"
-                    max="100"
-                    value={editData.progress}
-                    onChange={handleEditInputChange}
-                  />
-                ) : (
-                  <div className="progress-container">
-                    <div className="progress-bar">
-                      <div 
-                        className="progress-fill" 
-                        style={{ width: `${project.progress}%` }}
-                      >
-                        {project.progress}%
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </td>
-              <td>{project.lastUpdate}</td>
-              <td>
-                {editingId === project.id ? (
-                  <>
-                    <span 
-                      className="status delivered" 
-                      onClick={() => handleSaveEdit(project.id)}
-                    >
-                      Salvar
-                    </span>
-                    <span 
-                      className="status return" 
-                      onClick={handleCancelEdit}
-                    >
-                      Cancelar
-                    </span>
-                  </>
-                ) : (
-                  <>
-                    <span 
-                      className="status delivered" 
-                      onClick={() => handleEditClick(project.id)}
-                    >
-                      Editar
-                    </span>
-                    <span 
-                      className="status return" 
-                      onClick={() => handleDelete(project.id)}
-                    >
-                      Excluir
-                    </span>
-                  </>
-                )}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 };

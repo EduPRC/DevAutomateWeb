@@ -8,8 +8,8 @@ import UserDashboard from "./pages/UserDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
 import { AuthProvider } from "./AuthContext";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Analises from "./pages/Analises"
-import Progresso from "./pages/Progresso"
+import Analises from "./pages/Analises";
+import Progresso from "./pages/Progresso";
 
 function App() {
   return (
@@ -19,6 +19,8 @@ function App() {
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastrar" element={<Cadastrar />} />
+          
+          {/* Rota protegida para home */}
           <Route
             path="/home"
             element={
@@ -27,18 +29,44 @@ function App() {
               </ProtectedRoute>
             }
           />
+          
+          {/* Rota separada para dashboard de usuário comum */}
           <Route
             path="/dashboard"
             element={
-              <ProtectedRoute>
-                {({ role }) =>
-                  role === "admin" ? <AdminDashboard /> : <UserDashboard />
-                }
+              <ProtectedRoute allowedRoles={['user']}>
+                <UserDashboard />
               </ProtectedRoute>
             }
           />
-          <Route path="/analises" element={<ProtectedRoute><Analises /></ProtectedRoute>} />
-          <Route path="/progresso" element={<ProtectedRoute><Progresso /></ProtectedRoute>} />
+          
+          {/* Rota separada para dashboard de admin */}
+          <Route
+            path="/admin-dashboard"
+            element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          
+          {/* Outras rotas protegidas */}
+          <Route 
+            path="/analises" 
+            element={
+              <ProtectedRoute>
+                <Analises />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/progresso" 
+            element={
+              <ProtectedRoute>
+                <Progresso />
+              </ProtectedRoute>
+            } 
+          />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

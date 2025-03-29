@@ -3,12 +3,12 @@
 let users = [
   { 
     id: 1, 
-    username: "joao123", 
-    name: "João Silva", 
-    email: "joao@example.com", 
-    password: "Joao@123", 
+    username: " dani mattos", 
+    name: " dani mattos ", 
+    email: "dani@example.com", 
+    password: "dani@123", 
     role: "user", 
-    registrationDate: "10/10/2023" 
+    registrationDate: "09/10/2023" 
   },
   { 
     id: 2, 
@@ -21,12 +21,44 @@ let users = [
   },
   { 
     id: 3, 
+    username: "maria", 
+    name: "Maria ", 
+    email: "mari@example.com", 
+    password: "Maria@123", 
+    role: "user", 
+    registrationDate: "09/10/2023" 
+  },
+  { 
+    id: 4, 
+    username: "marcio", 
+    name: "Macio ", 
+    email: "marcio@example.com", 
+    password: "Marcio@123", 
+    role: "user", 
+    registrationDate: "09/10/2023" 
+  },
+  { 
+    id: 5, 
+    username: "hugo mattos", 
+    name: "Hugo mattos", 
+    email: "hugo@example.com", 
+    password: "Hugo@123", 
+    role: "user", 
+    registrationDate: "09/10/2023" 
+  },
+  { 
+    id: 6, 
     username: "admin", 
     email: "admin",
     password: "Admin@123", 
     role: "admin" 
   }
 ];
+
+// Função para verificar se um email já existe
+const checkEmailExists = (email) => {
+  return users.some(user => user.email === email);
+};
 
 // Função para obter todos os usuários (exceto admin)
 const getUsers = () => {
@@ -35,6 +67,11 @@ const getUsers = () => {
 
 // Função para adicionar um novo usuário
 const addUser = (username, email, password, role = "user") => {
+  // Verifica se o email já existe
+  if (checkEmailExists(email)) {
+    return { success: false, error: "EMAIL_EXISTS" };
+  }
+  
   // Gera um nome baseado no email (parte antes do @)
   const name = email.split('@')[0];
   
@@ -49,7 +86,7 @@ const addUser = (username, email, password, role = "user") => {
   };
   
   users.push(newUser);
-  return newUser;
+  return { success: true, user: newUser };
 };
 
 // Função para encontrar um usuário pelo email e password
@@ -61,6 +98,12 @@ const findUser = (email, password) => {
 
 // Função para editar um usuário
 const editUser = (id, username, email) => {
+  // Se o email foi alterado, verifica se o novo email já existe em outro usuário
+  const userToEdit = users.find(user => user.id === id);
+  if (userToEdit && userToEdit.email !== email && checkEmailExists(email)) {
+    return { success: false, error: "EMAIL_EXISTS" };
+  }
+
   const userIndex = users.findIndex(user => user.id === id);
   if (userIndex !== -1) {
     users[userIndex] = {
@@ -69,15 +112,15 @@ const editUser = (id, username, email) => {
       email,
       name: email.split('@')[0] // Atualiza o nome baseado no novo email
     };
-    return users[userIndex];
+    return { success: true, user: users[userIndex] };
   }
-  return null;
+  return { success: false, error: "USER_NOT_FOUND" };
 };
 
 // Função para excluir um usuário
 const deleteUser = (id) => {
   users = users.filter(user => user.id !== id);
-  return true;
+  return { success: true };
 };
 
-export { getUsers, addUser, findUser, editUser, deleteUser };
+export { getUsers, addUser, findUser, editUser, deleteUser, checkEmailExists };
