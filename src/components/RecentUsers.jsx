@@ -1,343 +1,287 @@
-// src/components/RecentProjects.jsx
 import React, { useState, useEffect } from "react";
-import { getData, saveData, addItem, updateItem, deleteItem, getAllUserData } from "../services/crudService";
-import { useAuth } from "../AuthContext";
-import { getUsers } from "../services/mockBackend";
+import { getUsers, editUser, deleteUser } from "../services/mockBackend";
+import { getData, saveData } from "../services/crudService";
 
-const RecentProjects = ({ adminView = false }) => {
-  const [projects, setProjects] = useState([]);
-  const [newProject, setNewProject] = useState({ title: "", description: "" });
-  const [editingId, setEditingId] = useState(null);
-  const [allUserProjects, setAllUserProjects] = useState([]);
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [usersList, setUsersList] = useState([]);
-  const [textFilter, setTextFilter] = useState("");
+const RecentUsers = () => {
+  const [users, setUsers] = useState([]);
   const [filteredUsers, setFilteredUsers] = useState([]);
+  const [editingUser, setEditingUser] = useState(null);
+  const [formData, setFormData] = useState({
+    username: "",
+    email: ""
+  });
   
-  // Get the current user from context
-  const { currentUser, isAuthenticated } = useAuth();
-  
-  // Pagination states
+  // Estados para paginação e filtro
+  const [itemsPerPage, setItemsPerPage] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
-
-  // Load user's projects when component mounts or user changes
+  const [searchTerm, setSearchTerm] = useState("");
+  
   useEffect(() => {
-    if (adminView) {
-      // Load all users for admin view
-      const users = getUsers();
-      setUsersList(users);
+    loadUsers();
+  }, []);
+  
+  // Efeito para filtrar usuários quando o termo de busca mudar
+  useEffect(() => {
+    filterUsers();
+  }, [searchTerm, users]);
+  
+  const loadUsers = () => {
+    const allUsers = getUsers();
+    
+    // Salvar usuários no localStorage também
+    saveData("users", allUsers);
+    
+    setUsers(allUsers);
+    setFilteredUsers(allUsers);
+  };
+  
+  const filterUsers = () => {
+    if (!searchTerm.trim()) {
       setFilteredUsers(users);
-      
-      // Load all user projects for admin view
-      const allProjects = getAllUserData("projects");
-      const formattedProjects = [];
-      
-      // Convert the object to an array of projects with user info
-      Object.keys(allProjects).forEach(userId => {
-        const user = users.find(u => u.id.toString() === userId);
-        if (user) {
-          allProjects[userId].forEach(project => {
-            formattedProjects.push({
-              ...project,
-              userName: user.name,
-              userId: user.id
-            });
+      setCurrentPage(1);
+      return;
+    }
+    
+    const filtered = users.filter(user => 
+      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.username.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+    
+    setFilteredUsers(filtered);
+    setCurrentPage(1);
+  };
+
+  const handleEditClick = (user) => {
+    setEditingUser(user);
+    setFormData({
+      username: user.username,
+      email: user.email
+    });
+  };
+
+  const handleInputChange = (e) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+  
+  const handleSearchChange = (e) => {
+    setSearchTerm(e.target.value);
+  };
+  
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1);
+  };
+
+  const handleSaveEdit = () => {
+    if (editingUser) {
+      const updatedUser = editUser(editingUser.id, formData.username, formData.email);
+      if (updatedUser) {
+        // Se o usuário editado for o atual usuário logado, atualizar no localStorage
+        const currentUser = getData("currentUser", null);
+        if (currentUser && currentUser.id === editingUser.id) {
+          saveData("currentUser", {
+            ...currentUser,
+            username: formData.username,
+            email: formData.email,
+            name: formData.email.split('@')[0]
           });
         }
-      });
-      
-      setAllUserProjects(formattedProjects);
-    } else if (currentUser && isAuthenticated) {
-      // For regular user view, load only their projects
-      const userProjectsKey = "projects";
-      const storedProjects = getData(userProjectsKey, [], currentUser.id);
-      setProjects(storedProjects);
-    } else {
-      setProjects([]);
-    }
-  }, [currentUser, isAuthenticated, adminView]);
-
-  // Filter users based on text input
-  useEffect(() => {
-    if (adminView && textFilter) {
-      const filtered = usersList.filter(user => 
-        user.name.toLowerCase().includes(textFilter.toLowerCase()) ||
-        user.username.toLowerCase().includes(textFilter.toLowerCase())
-      );
-      setFilteredUsers(filtered);
-    } else {
-      setFilteredUsers(usersList);
-    }
-  }, [textFilter, usersList, adminView]);
-
-  // Calculate total pages
-  const totalPages = Math.ceil(
-    adminView 
-      ? (selectedUser 
-          ? allUserProjects.filter(p => p.userId === selectedUser).length 
-          : allUserProjects.length) 
-      : projects.length
-    ) / itemsPerPage;
-
-  // Get projects for current page
-  const getCurrentPageProjects = () => {
-    const startIndex = (currentPage - 1) * itemsPerPage;
-    const endIndex = startIndex + itemsPerPage;
-    
-    if (adminView) {
-      const filteredProjects = selectedUser
-        ? allUserProjects.filter(p => p.userId === selectedUser)
-        : allUserProjects;
-      
-      return filteredProjects.slice(startIndex, endIndex);
-    } else {
-      return projects.slice(startIndex, endIndex);
-    }
-  };
-
-  // Navigate to previous page
-  const goToPreviousPage = () => {
-    if (currentPage > 1) {
-      setCurrentPage(currentPage - 1);
-    }
-  };
-
-  // Navigate to next page
-  const goToNextPage = () => {
-    if (currentPage < totalPages) {
-      setCurrentPage(currentPage + 1);
-    }
-  };
-
-  const handleAddProject = () => {
-    if (!isAuthenticated || !currentUser) {
-      alert("Você precisa estar logado para adicionar projetos.");
-      return;
-    }
-    
-    if (newProject.title.trim() === "") {
-      alert("O título do projeto não pode estar vazio!");
-      return;
-    }
-
-    // Create a user-specific key for storing projects
-    const userProjectsKey = "projects";
-
-    if (editingId !== null) {
-      // Update existing project
-      updateItem(userProjectsKey, editingId, newProject, currentUser.id);
-      setEditingId(null);
-    } else {
-      // Add new project
-      addItem(userProjectsKey, newProject, currentUser.id);
-    }
-
-    // Reload the list after changes
-    setProjects(getData(userProjectsKey, [], currentUser.id));
-    setNewProject({ title: "", description: "" });
-  };
-
-  const handleEditProject = (id) => {
-    const projectToEdit = projects.find(project => project.id === id);
-    if (projectToEdit) {
-      setNewProject({ title: projectToEdit.title, description: projectToEdit.description });
-      setEditingId(id);
-    }
-  };
-
-  const handleDeleteProject = (id) => {
-    if (!isAuthenticated || !currentUser) return;
-    
-    if (window.confirm("Tem certeza que deseja excluir este projeto?")) {
-      // Create a user-specific key for storing projects
-      const userProjectsKey = "projects";
-      
-      deleteItem(userProjectsKey, id, currentUser.id);
-      
-      // Reload projects
-      const updatedProjects = getData(userProjectsKey, [], currentUser.id);
-      setProjects(updatedProjects);
-      
-      // Adjust current page if needed
-      if (currentPage > 1 && getCurrentPageProjects().length === 0) {
-        setCurrentPage(currentPage - 1);
+        
+        loadUsers();
+        setEditingUser(null);
       }
     }
   };
 
-  const handleUserFilterChange = (e) => {
-    setSelectedUser(e.target.value ? parseInt(e.target.value) : null);
-    setCurrentPage(1);
+  const handleDelete = (id) => {
+    if (window.confirm("Tem certeza que deseja excluir este usuário?")) {
+      // Verificar se o usuário sendo excluído é o usuário logado atualmente
+      const currentUser = getData("currentUser", null);
+      if (currentUser && currentUser.id === id) {
+        alert("Não é possível excluir o usuário atualmente logado.");
+        return;
+      }
+      
+      deleteUser(id);
+      loadUsers();
+    }
   };
 
-  const handleTextFilterChange = (e) => {
-    setTextFilter(e.target.value);
+  const handleCancelEdit = () => {
+    setEditingUser(null);
+  };
+  
+  // Calculando total de páginas
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
+  
+  // Obter usuários da página atual
+  const getCurrentUsers = () => {
+    const startIndex = (currentPage - 1) * itemsPerPage;
+    const endIndex = startIndex + itemsPerPage;
+    return filteredUsers.slice(startIndex, endIndex);
+  };
+  
+  // Navegação de página
+  const goToPage = (page) => {
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
 
-  // Projects for current page
-  const currentProjects = getCurrentPageProjects();
-
-  if (adminView) {
-    return (
-      <div className="recent-projects admin-view">
-        <h2>Projetos de Todos os Usuários</h2>
-        
-        {/* Text filter for admin to find users */}
-        <div className="text-filter">
-          <label htmlFor="textFilter">Buscar usuário: </label>
-          <input 
-            type="text" 
-            id="textFilter" 
-            value={textFilter} 
-            onChange={handleTextFilterChange}
-            placeholder="Digite o nome do usuário"
+  return (
+    <div className="recentOrders">
+      <div className="cardHeader">
+        <h2>Usuários Recentes</h2>
+      </div>
+      
+      <div className="filterControls" style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between" }}>
+        <div className="searchFilter">
+          <input
+            type="text"
+            placeholder="Pesquisar por nome..."
+            value={searchTerm}
+            onChange={handleSearchChange}
+            style={{ padding: "8px", width: "250px" }}
           />
         </div>
         
-        {/* Filter for admin to select user */}
-        <div className="user-filter">
-          <label htmlFor="userFilter">Selecionar usuário: </label>
-          <select 
-            id="userFilter" 
-            value={selectedUser || ''} 
-            onChange={handleUserFilterChange}
+        <div className="paginationControl">
+          <label htmlFor="itemsPerPage">Itens por página: </label>
+          <select
+            id="itemsPerPage"
+            value={itemsPerPage}
+            onChange={handleItemsPerPageChange}
+            style={{ padding: "8px", marginLeft: "5px" }}
           >
-            <option value="">Todos os usuários</option>
-            {filteredUsers.map(user => (
-              <option key={user.id} value={user.id}>{user.name} ({user.username})</option>
-            ))}
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={15}>15</option>
           </select>
         </div>
-        
-        {/* Projects list for admin view */}
-        <div className="projects-list">
-          {currentProjects.length === 0 ? (
-            <p>Nenhum projeto encontrado.</p>
-          ) : (
-            currentProjects.map(project => (
-              <div key={project.id} className="project-item">
-                <h3>{project.title}</h3>
-                <p>{project.description}</p>
-                <div className="project-meta">
-                  <span className="user-tag">Usuário: {project.userName}</span>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-        
-        {/* Pagination controls */}
-        {allUserProjects.length > 0 && (
-          <div className="pagination-controls">
-            <button 
-              onClick={goToPreviousPage} 
-              disabled={currentPage === 1}
-              className={`pagination-button ${currentPage === 1 ? 'disabled' : ''}`}
-            >
-              Anterior
-            </button>
-            
-            <span className="pagination-info">
-              Página {currentPage} de {totalPages}
-            </span>
-            
-            <button 
-              onClick={goToNextPage} 
-              disabled={currentPage === totalPages}
-              className={`pagination-button ${currentPage === totalPages ? 'disabled' : ''}`}
-            >
-              Próxima
-            </button>
-          </div>
-        )}
       </div>
-    );
-  }
 
-  if (!isAuthenticated || !currentUser) {
-    return (
-      <div className="recent-projects">
-        <h2>Projetos Recentes</h2>
-        <p>Faça login para visualizar seus projetos.</p>
-      </div>
-    );
-  }
+      <table>
+        <thead>
+          <tr>
+            <th>Nome</th>
+            <th>Nome de Usuário</th>
+            <th>Email</th>
+            <th>Data de Registro</th>
+            <th>Ações</th>
+          </tr>
+        </thead>
 
-  return (
-    <div className="recent-projects">
-      <h2>Projetos Recentes de {currentUser.name}</h2>
+        <tbody>
+          {getCurrentUsers().map((user) => (
+            <tr key={user.id}>
+              <td>{user.name}</td>
+              <td>
+                {editingUser?.id === user.id ? (
+                  <input
+                    type="text"
+                    name="username"
+                    value={formData.username}
+                    onChange={handleInputChange}
+                  />
+                ) : (
+                  user.username
+                )}
+              </td>
+              <td>
+                {editingUser?.id === user.id ? (
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                  />
+                ) : (
+                  user.email
+                )}
+              </td>
+              <td>{user.registrationDate}</td>
+              <td>
+                {editingUser?.id === user.id ? (
+                  <>
+                    <span className="status delivered" onClick={handleSaveEdit}>
+                      Salvar
+                    </span>
+                    <span className="status return" onClick={handleCancelEdit}>
+                      Cancelar
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span
+                      className="status delivered"
+                      onClick={() => handleEditClick(user)}
+                    >
+                      Editar
+                    </span>
+                    <span
+                      className="status return"
+                      onClick={() => handleDelete(user.id)}
+                    >
+                      Excluir
+                    </span>
+                  </>
+                )}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
       
-      {/* Form to add/edit project */}
-      <div className="project-form">
-        <input 
-          type="text" 
-          placeholder="Título do projeto" 
-          value={newProject.title}
-          onChange={(e) => setNewProject({...newProject, title: e.target.value})}
-        />
-        <textarea 
-          placeholder="Descrição do projeto" 
-          value={newProject.description}
-          onChange={(e) => setNewProject({...newProject, description: e.target.value})}
-        />
-        <button onClick={handleAddProject}>
-          {editingId !== null ? "Atualizar Projeto" : "Adicionar Projeto"}
-        </button>
-        {editingId !== null && (
-          <button onClick={() => {
-            setEditingId(null);
-            setNewProject({ title: "", description: "" });
-          }}>
-            Cancelar
-          </button>
-        )}
-      </div>
-      
-      {/* Projects list */}
-      <div className="projects-list">
-        {currentProjects.length === 0 ? (
-          <p>Nenhum projeto encontrado. Adicione seu primeiro projeto!</p>
-        ) : (
-          currentProjects.map(project => (
-            <div key={project.id} className="project-item">
-              <h3>{project.title}</h3>
-              <p>{project.description}</p>
-              <div className="project-actions">
-                <button onClick={() => handleEditProject(project.id)}>Editar</button>
-                <button onClick={() => handleDeleteProject(project.id)}>Excluir</button>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
-      
-      {/* Pagination controls */}
-      {projects.length > 0 && (
-        <div className="pagination-controls">
+      {/* Paginação */}
+      {totalPages > 1 && (
+        <div className="pagination" style={{ marginTop: "20px", display: "flex", justifyContent: "center", alignItems: "center" }}>
           <button 
-            onClick={goToPreviousPage} 
+            onClick={() => goToPage(1)} 
             disabled={currentPage === 1}
-            className={`pagination-button ${currentPage === 1 ? 'disabled' : ''}`}
+            style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === 1 ? "default" : "pointer" }}
           >
-            Anterior
+            &laquo;
           </button>
           
-          <span className="pagination-info">
+          <button 
+            onClick={() => goToPage(currentPage - 1)} 
+            disabled={currentPage === 1}
+            style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === 1 ? "default" : "pointer" }}
+          >
+            &lt;
+          </button>
+          
+          <span style={{ margin: "0 10px" }}>
             Página {currentPage} de {totalPages}
           </span>
           
           <button 
-            onClick={goToNextPage} 
+            onClick={() => goToPage(currentPage + 1)} 
             disabled={currentPage === totalPages}
-            className={`pagination-button ${currentPage === totalPages ? 'disabled' : ''}`}
+            style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === totalPages ? "default" : "pointer" }}
           >
-            Próxima
+            &gt;
           </button>
+          
+          <button 
+            onClick={() => goToPage(totalPages)} 
+            disabled={currentPage === totalPages}
+            style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === totalPages ? "default" : "pointer" }}
+          >
+            &raquo;
+          </button>
+          
+          <div style={{ marginLeft: "15px" }}>
+            <span>Total: {filteredUsers.length} usuários</span>
+          </div>
         </div>
       )}
     </div>
   );
 };
 
-export default RecentProjects;
+export default RecentUsers;

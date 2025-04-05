@@ -16,7 +16,7 @@ const RecentProjects = ({ adminView = false }) => {
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 5;
+  const [itemsPerPage, setItemsPerPage] = useState(5); // Alterado de const para state
 
   // Load user's projects when component mounts or user changes
   useEffect(() => {
@@ -121,6 +121,12 @@ const RecentProjects = ({ adminView = false }) => {
     setCurrentPage(1);
   }, [searchText]);
 
+  // Manipula mudança de itens por página
+  const handleItemsPerPageChange = (e) => {
+    setItemsPerPage(Number(e.target.value));
+    setCurrentPage(1); // Volta para a primeira página ao mudar quantidade de itens
+  };
+
   const handleAddProject = () => {
     if (!isAuthenticated || !currentUser) {
       alert("Você precisa estar logado para adicionar projetos.");
@@ -194,16 +200,34 @@ const RecentProjects = ({ adminView = false }) => {
       <div className="recent-projects admin-view">
         <h2>Projetos de Todos os Usuários</h2>
         
-        {/* Filtro de texto para admin */}
-        <div className="search-filter">
-          <label htmlFor="searchFilter">Buscar usuários ou projetos: </label>
-          <input 
-            type="text" 
-            id="searchFilter" 
-            value={searchText} 
-            onChange={handleSearchChange}
-            placeholder="Digite para filtrar usuários ou projetos..."
-          />
+        <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between" }}>
+          {/* Filtro de texto para admin */}
+          <div className="search-filter">
+            <label htmlFor="searchFilter">Buscar usuários ou projetos: </label>
+            <input 
+              type="text" 
+              id="searchFilter" 
+              value={searchText} 
+              onChange={handleSearchChange}
+              placeholder="Digite para filtrar usuários ou projetos..."
+              style={{ padding: "8px", width: "250px" }}
+            />
+          </div>
+          
+          {/* Controle de itens por página */}
+          <div className="paginationControl">
+            <label htmlFor="itemsPerPage">Itens por página: </label>
+            <select
+              id="itemsPerPage"
+              value={itemsPerPage}
+              onChange={handleItemsPerPageChange}
+              style={{ padding: "8px", marginLeft: "5px" }}
+            >
+              <option value={5}>5</option>
+              <option value={10}>10</option>
+              <option value={15}>15</option>
+            </select>
+          </div>
         </div>
         
         {/* Projects list for admin view */}
@@ -225,26 +249,46 @@ const RecentProjects = ({ adminView = false }) => {
         
         {/* Pagination controls */}
         {filteredProjects.length > 0 && (
-          <div className="pagination-controls">
+          <div className="pagination-controls" style={{ marginTop: "20px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+            <button 
+              onClick={() => setCurrentPage(1)} 
+              disabled={currentPage === 1}
+              style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === 1 ? "default" : "pointer" }}
+            >
+              &laquo;
+            </button>
+            
             <button 
               onClick={goToPreviousPage} 
               disabled={currentPage === 1}
-              className={`pagination-button ${currentPage === 1 ? 'disabled' : ''}`}
+              style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === 1 ? "default" : "pointer" }}
             >
-              Anterior
+              &lt;
             </button>
             
-            <span className="pagination-info">
+            <span style={{ margin: "0 10px" }}>
               Página {currentPage} de {totalPages}
             </span>
             
             <button 
               onClick={goToNextPage} 
               disabled={currentPage === totalPages}
-              className={`pagination-button ${currentPage === totalPages ? 'disabled' : ''}`}
+              style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === totalPages ? "default" : "pointer" }}
             >
-              Próxima
+              &gt;
             </button>
+            
+            <button 
+              onClick={() => setCurrentPage(totalPages)} 
+              disabled={currentPage === totalPages}
+              style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === totalPages ? "default" : "pointer" }}
+            >
+              &raquo;
+            </button>
+            
+            <div style={{ marginLeft: "15px" }}>
+              <span>Total: {filteredProjects.length} projetos</span>
+            </div>
           </div>
         )}
       </div>
@@ -290,16 +334,34 @@ const RecentProjects = ({ adminView = false }) => {
         )}
       </div>
       
-      {/* Filtro de texto para usuário regular */}
-      <div className="search-filter">
-        <label htmlFor="userSearchFilter">Buscar projetos: </label>
-        <input 
-          type="text" 
-          id="userSearchFilter" 
-          value={searchText} 
-          onChange={handleSearchChange}
-          placeholder="Digite para filtrar seus projetos..."
-        />
+      <div style={{ marginBottom: "20px", display: "flex", justifyContent: "space-between" }}>
+        {/* Filtro de texto para usuário regular */}
+        <div className="search-filter">
+          <label htmlFor="userSearchFilter">Buscar projetos: </label>
+          <input 
+            type="text" 
+            id="userSearchFilter" 
+            value={searchText} 
+            onChange={handleSearchChange}
+            placeholder="Digite para filtrar seus projetos..."
+            style={{ padding: "8px", width: "250px" }}
+          />
+        </div>
+        
+        {/* Controle de itens por página */}
+        <div className="paginationControl">
+          <label htmlFor="itemsPerPage">Itens por página: </label>
+          <select
+            id="itemsPerPage"
+            value={itemsPerPage}
+            onChange={handleItemsPerPageChange}
+            style={{ padding: "8px", marginLeft: "5px" }}
+          >
+            <option value={5}>5</option>
+            <option value={10}>10</option>
+            <option value={15}>15</option>
+          </select>
+        </div>
       </div>
       
       {/* Projects list */}
@@ -326,26 +388,46 @@ const RecentProjects = ({ adminView = false }) => {
       
       {/* Pagination controls */}
       {filteredProjects.length > 0 && (
-        <div className="pagination-controls">
+        <div className="pagination-controls" style={{ marginTop: "20px", display: "flex", justifyContent: "center", alignItems: "center" }}>
+          <button 
+            onClick={() => setCurrentPage(1)} 
+            disabled={currentPage === 1}
+            style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === 1 ? "default" : "pointer" }}
+          >
+            &laquo;
+          </button>
+          
           <button 
             onClick={goToPreviousPage} 
             disabled={currentPage === 1}
-            className={`pagination-button ${currentPage === 1 ? 'disabled' : ''}`}
+            style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === 1 ? "default" : "pointer" }}
           >
-            Anterior
+            &lt;
           </button>
           
-          <span className="pagination-info">
+          <span style={{ margin: "0 10px" }}>
             Página {currentPage} de {totalPages}
           </span>
           
           <button 
             onClick={goToNextPage} 
             disabled={currentPage === totalPages}
-            className={`pagination-button ${currentPage === totalPages ? 'disabled' : ''}`}
+            style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === totalPages ? "default" : "pointer" }}
           >
-            Próxima
+            &gt;
           </button>
+          
+          <button 
+            onClick={() => setCurrentPage(totalPages)} 
+            disabled={currentPage === totalPages}
+            style={{ padding: "5px 10px", margin: "0 5px", cursor: currentPage === totalPages ? "default" : "pointer" }}
+          >
+            &raquo;
+          </button>
+          
+          <div style={{ marginLeft: "15px" }}>
+            <span>Total: {filteredProjects.length} projetos</span>
+          </div>
         </div>
       )}
     </div>
