@@ -4,20 +4,27 @@ import {
   signInWithEmailAndPassword, 
   signInWithPopup, 
   signOut,
-  createUserWithEmailAndPassword 
+  createUserWithEmailAndPassword,
+  GoogleAuthProvider
 } from "firebase/auth";
 import { 
   doc, setDoc, serverTimestamp,
-  collection, query, where, getDocs
+  collection, query, where, getDocs, getDoc
 } from "firebase/firestore";
 
-// Funções de Autenticação (mantidas do seu código original)
+// Configure Google provider to always ask for account selection
+const googleAuthProvider = new GoogleAuthProvider();
+googleAuthProvider.setCustomParameters({
+  prompt: 'select_account'
+});
+
+// Authentication Functions
 export const loginWithEmail = async (email, password) => {
   try {
     const userCredential = await signInWithEmailAndPassword(auth, email, password);
     return { 
       success: true, 
-      user: await getUserData(userCredential.user.uid) // Busca dados adicionais
+      user: await getUserData(userCredential.user.uid)
     };
   } catch (error) {
     return handleAuthError(error);
@@ -26,8 +33,7 @@ export const loginWithEmail = async (email, password) => {
 
 export const loginWithGoogle = async () => {
   try {
-    const result = await signInWithPopup(auth, googleProvider);
-    // Verifica se é o primeiro login e salva dados
+    const result = await signInWithPopup(auth, googleAuthProvider);
     await handleFirstLogin(result.user);
     return {
       success: true,
@@ -47,17 +53,17 @@ export const logoutFirebase = async () => {
   }
 };
 
-// --- Funções Adicionais para Admin/Users ---
+// Admin/User Management Functions
 export const createAdminUser = async () => {
   const ADMIN_DATA = {
-    email: process.env.REACT_APP_ADMIN_EMAIL || "admin@example.com",
-    password: process.env.REACT_APP_ADMIN_PASSWORD || "Admin@123",
+    email: "admin@example.com",
+    password: "Admin@123",
     name: "Administrador"
   };
 
   try {
     if (await checkUserExists(ADMIN_DATA.email)) {
-      console.warn("Admin já existe");
+      console.warn("Admin already exists");
       return false;
     }
 
@@ -77,12 +83,12 @@ export const createAdminUser = async () => {
 
     return true;
   } catch (error) {
-    console.error("Erro ao criar admin:", error);
+    console.error("Error creating admin:", error);
     return false;
   }
 };
 
-// --- Funções Auxiliares ---
+// Helper Functions
 const handleFirstLogin = async (user) => {
   const userRef = doc(db, "users", user.uid);
   const docSnap = await getDoc(userRef);
@@ -109,14 +115,16 @@ const checkUserExists = async (email) => {
 };
 
 const handleAuthError = (error) => {
-  console.error('Erro de autenticação:', error);
+  console.error('Authentication error:', error);
   const errorMap = {
-    'auth/invalid-credential': 'Credenciais inválidas',
-    'auth/too-many-requests': 'Muitas tentativas. Tente mais tarde',
-    'auth/popup-closed-by-user': 'Login cancelado pelo usuário'
+    'auth/invalid-credential': 'Invalid credentials',
+    'auth/too-many-requests': 'Too many attempts. Try again later',
+    'auth/popup-closed-by-user': 'Login canceled by user',
+    'auth/user-not-found': 'User not found',
+    'auth/wrong-password': 'Incorrect password'
   };
   return {
     success: false,
-    error: errorMap[error.code] || 'Erro durante a autenticação'
+    error: errorMap[error.code] || 'Authentication error'
   };
 };
