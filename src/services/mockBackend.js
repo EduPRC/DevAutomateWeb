@@ -2,51 +2,6 @@
 
 let users = [
   { 
-    id: 1, 
-    username: " dani mattos", 
-    name: " dani mattos ", 
-    email: "dani@example.com", 
-    password: "Dani@123", 
-    role: "user", 
-    registrationDate: "09/10/2023" 
-  },
-  { 
-    id: 2, 
-    username: "maria456", 
-    name: "Maria Souza", 
-    email: "maria@example.com", 
-    password: "Maria@123", 
-    role: "user", 
-    registrationDate: "09/10/2023" 
-  },
-  { 
-    id: 3, 
-    username: "maria", 
-    name: "Maria ", 
-    email: "mari@example.com", 
-    password: "Maria@123", 
-    role: "user", 
-    registrationDate: "09/10/2023" 
-  },
-  { 
-    id: 4, 
-    username: "marcio", 
-    name: "Macio ", 
-    email: "marcio@example.com", 
-    password: "Marcio@123", 
-    role: "user", 
-    registrationDate: "09/10/2023" 
-  },
-  { 
-    id: 5, 
-    username: "hugo mattos", 
-    name: "Hugo mattos", 
-    email: "hugo@example.com", 
-    password: "Hugo@123", 
-    role: "user", 
-    registrationDate: "09/10/2023" 
-  },
-  { 
     id: 6, 
     username: "admin", 
     email: "admin",

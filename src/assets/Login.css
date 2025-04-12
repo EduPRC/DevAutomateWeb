@@ -96,3 +96,40 @@ body {
   background-color: #5320a6;
 }
 
+/* Adicione ao seu arquivo Login.css */
+.login__divider {
+  margin: 15px 0;
+  text-align: center;
+  position: relative;
+}
+
+.login__divider::before,
+.login__divider::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 40%;
+  height: 1px;
+  background-color: #ccc;
+}
+
+.login__divider::before {
+  left: 0;
+}
+
+.login__divider::after {
+  right: 0;
+}
+
+.google-btn {
+  background-color: #4285F4;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 15px;
+}
+
+.google-btn:hover {
+  background-color: #357ae8;
+}

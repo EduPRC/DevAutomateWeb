@@ -1,42 +1,45 @@
-// Login.jsx
+// Login.jsx (atualizado)
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import "../assets/Login.css";
 import logo from "../assets/img/logoDev.png";
-import { findUser } from "../services/mockBackend";
-import { useAuth } from "../AuthContext"; // Import the authentication context
+import { useAuth } from "../AuthContext";
+import { loginWithEmail, loginWithGoogle } from "../services/firebaseAuthService";
+import { IonIcon } from '@ionic/react';
+import { logoGoogle } from 'ionicons/icons';
 
 const Login = () => {
-  const [email, setEmail] = useState(""); // Changed from username to email for clarity
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const navigate = useNavigate();
-  const { login } = useAuth(); // Use the login function from context
+  const { login } = useAuth();
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
-    const user = findUser(email, password);
-
-    if (user) {
-      // Store user in localStorage (without the password)
-      const userToStore = { ...user };
-      delete userToStore.password;
-      localStorage.setItem("currentUser", JSON.stringify(userToStore));
-
-      // Call context login with role and user object
-      login(user.role, userToStore);
-
-      // Redirect based on user role
-      if (user.role === "admin") {
-        navigate("/admin-dashboard");
-      } else {
-        navigate("/dashboard");
-      }
+    const result = await loginWithEmail(email, password);
+    
+    if (result.success) {
+      localStorage.setItem("currentUser", JSON.stringify(result.user));
+      login(result.user.role, result.user);
+      // Redireciona com base no role
+      navigate(result.user.role === 'admin' ? "/admin-dashboard" : "/user-dashboard");
     } else {
-      setError("Email ou senha incorretos.");
+      setError(result.error);
     }
+  };
 
+  const handleGoogleLogin = async () => {
+    const result = await loginWithGoogle();
+    
+    if (result.success) {
+      localStorage.setItem("currentUser", JSON.stringify(result.user));
+      login(result.user.role, result.user);
+      // Redireciona com base no role
+      navigate(result.user.role === "admin" ? "/admin-dashboard" : "/user-dashboard");
+    } else {
+      setError(result.error);
+    }
   };
 
   return (
@@ -71,10 +74,10 @@ const Login = () => {
         <h2 className="login__title">Login</h2>
         <form onSubmit={handleSubmit}>
           <input
-            type="text"
+            type="email"
             placeholder="Email"
             value={email}
-            onChange={(e) => setEmail(e.target.value.toLowerCase().trim())} 
+            onChange={(e) => setEmail(e.target.value.toLowerCase().trim())}
             required
             className="login__input"
           />
@@ -91,6 +94,17 @@ const Login = () => {
             Entrar
           </button>
         </form>
+
+        <div className="login__divider">ou</div>
+
+        <button 
+          className="login__btn google-btn"
+          onClick={handleGoogleLogin}
+        >
+          <IonIcon icon={logoGoogle} style={{ marginRight: '8px' }} />
+          Entrar com Google
+        </button>
+
         <p>
           Ainda não tem conta?{" "}
           <Link to="/cadastrar" className="login__link">

@@ -2,7 +2,9 @@ import "../assets/Cadastrar.css";
 import logo from "../assets/img/logoDev.png";
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-import { addUser, checkEmailExists } from "../services/mockBackend";
+import { addUser, checkEmailExists } from "../services/firebaseUserService";
+import { createUserWithEmailAndPassword } from "firebase/auth";
+import { auth } from "../services/conectionFirebase";
 
 const Cadastrar = () => {
   const [usuario, setUsuario] = useState("");
@@ -82,10 +84,9 @@ const Cadastrar = () => {
     setSenhasIguais(senha === novaRepetirSenha);
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Verifica se os campos foram preenchidos corretamente
     if (!validarUsuario(usuario)) {
       setErroUsuario("O nome de usuário deve ter entre 5 e 15 caracteres.");
       return;
@@ -97,26 +98,41 @@ const Cadastrar = () => {
     }
     
     if (!validarSenha(senha)) {
-      return; // As mensagens de erro já estão sendo exibidas nos indicadores de regras
+      return;
     }
     
     if (!senhasIguais) {
-      return; // A mensagem de erro já está sendo exibida nos indicadores de regras
+      return;
     }
 
-    // Verifica se o email já está cadastrado
-    if (checkEmailExists(email)) {
+    // Verifica se o email já existe
+    const emailExists = await checkEmailExists(email);
+    if (emailExists) {
       setErroEmail("Este email já está cadastrado.");
       return;
     }
 
-    // Adiciona o usuário com nome, email e senha
-    const resultado = addUser(usuario, email, senha, "user");
-    
-    if (resultado.success) {
-      navigate("/login");
-    } else if (resultado.error === "EMAIL_EXISTS") {
-      setErroEmail("Este email já está cadastrado.");
+    try {
+      // Cria o usuário no Firebase Auth
+      const userCredential = await createUserWithEmailAndPassword(auth, email, senha);
+      
+      // Adiciona os dados adicionais no Firestore
+      const result = await addUser({
+        username: usuario,
+        email: email,
+        name: email.split('@')[0],
+        role: "user",
+        registrationDate: new Date().toISOString()
+      });
+
+      if (result.success) {
+        navigate("/login");
+      }
+    } catch (error) {
+      console.error("Erro no cadastro:", error);
+      if (error.code === 'auth/email-already-in-use') {
+        setErroEmail("Este email já está cadastrado.");
+      }
     }
   };
 

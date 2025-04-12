@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from "react";
-import { getUsers, editUser, deleteUser } from "../services/mockBackend";
-import { getData, saveData } from "../services/crudService";
+import { getUsers, updateUser, deleteUser } from "../services/firebaseUserService";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "../services/conectionFirebase";
 
 const RecentUsers = () => {
   const [users, setUsers] = useState([]);
@@ -10,31 +11,35 @@ const RecentUsers = () => {
     username: "",
     email: ""
   });
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   // Estados para paginação e filtro
   const [itemsPerPage, setItemsPerPage] = useState(5);
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+
+  const loadUsers = async () => {
+    try {
+      setLoading(true);
+      const allUsers = await getUsers();
+      setUsers(allUsers);
+      setFilteredUsers(allUsers);
+      setError(null);
+    } catch (err) {
+      console.error("Error loading users:", err);
+      setError("Falha ao carregar usuários");
+      setUsers([]);
+      setFilteredUsers([]);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   useEffect(() => {
     loadUsers();
   }, []);
-  
-  // Efeito para filtrar usuários quando o termo de busca mudar
-  useEffect(() => {
-    filterUsers();
-  }, [searchTerm, users]);
-  
-  const loadUsers = () => {
-    const allUsers = getUsers();
-    
-    // Salvar usuários no localStorage também
-    saveData("users", allUsers);
-    
-    setUsers(allUsers);
-    setFilteredUsers(allUsers);
-  };
-  
+
   const filterUsers = () => {
     if (!searchTerm.trim()) {
       setFilteredUsers(users);
@@ -43,19 +48,23 @@ const RecentUsers = () => {
     }
     
     const filtered = users.filter(user => 
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.username.toLowerCase().includes(searchTerm.toLowerCase())
+      (user.name && user.name.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (user.username && user.username.toLowerCase().includes(searchTerm.toLowerCase()))
     );
     
     setFilteredUsers(filtered);
     setCurrentPage(1);
   };
 
+  useEffect(() => {
+    filterUsers();
+  }, [searchTerm, users]);
+
   const handleEditClick = (user) => {
     setEditingUser(user);
     setFormData({
-      username: user.username,
-      email: user.email
+      username: user.username || "",
+      email: user.email || ""
     });
   };
 
@@ -76,38 +85,37 @@ const RecentUsers = () => {
     setCurrentPage(1);
   };
 
-  const handleSaveEdit = () => {
-    if (editingUser) {
-      const updatedUser = editUser(editingUser.id, formData.username, formData.email);
-      if (updatedUser) {
-        // Se o usuário editado for o atual usuário logado, atualizar no localStorage
-        const currentUser = getData("currentUser", null);
-        if (currentUser && currentUser.id === editingUser.id) {
-          saveData("currentUser", {
-            ...currentUser,
-            username: formData.username,
-            email: formData.email,
-            name: formData.email.split('@')[0]
-          });
-        }
-        
-        loadUsers();
+  const handleSaveEdit = async () => {
+    if (!editingUser) return;
+    
+    try {
+      const result = await updateUser(editingUser.id, {
+        username: formData.username,
+        email: formData.email,
+        name: formData.email.split('@')[0]
+      });
+      
+      if (result.success) {
+        await loadUsers();
         setEditingUser(null);
       }
+    } catch (err) {
+      console.error("Error updating user:", err);
+      setError("Falha ao atualizar usuário");
     }
   };
 
-  const handleDelete = (id) => {
+  const handleDelete = async (id) => {
     if (window.confirm("Tem certeza que deseja excluir este usuário?")) {
-      // Verificar se o usuário sendo excluído é o usuário logado atualmente
-      const currentUser = getData("currentUser", null);
-      if (currentUser && currentUser.id === id) {
-        alert("Não é possível excluir o usuário atualmente logado.");
-        return;
+      try {
+        const result = await deleteUser(id);
+        if (result.success) {
+          await loadUsers();
+        }
+      } catch (err) {
+        console.error("Error deleting user:", err);
+        setError("Falha ao excluir usuário");
       }
-      
-      deleteUser(id);
-      loadUsers();
     }
   };
 
@@ -131,6 +139,9 @@ const RecentUsers = () => {
       setCurrentPage(page);
     }
   };
+
+  if (loading) return <div>Carregando usuários...</div>;
+  if (error) return <div>Erro: {error}</div>;
 
   return (
     <div className="recentOrders">
@@ -178,7 +189,7 @@ const RecentUsers = () => {
         <tbody>
           {getCurrentUsers().map((user) => (
             <tr key={user.id}>
-              <td>{user.name}</td>
+              <td>{user.name || user.email.split('@')[0]}</td>
               <td>
                 {editingUser?.id === user.id ? (
                   <input
@@ -188,7 +199,7 @@ const RecentUsers = () => {
                     onChange={handleInputChange}
                   />
                 ) : (
-                  user.username
+                  user.username || "-"
                 )}
               </td>
               <td>
@@ -203,31 +214,31 @@ const RecentUsers = () => {
                   user.email
                 )}
               </td>
-              <td>{user.registrationDate}</td>
+              <td>{user.registrationDate || "Data não disponível"}</td>
               <td>
                 {editingUser?.id === user.id ? (
                   <>
-                    <span className="status delivered" onClick={handleSaveEdit}>
+                    <button className="status delivered" onClick={handleSaveEdit}>
                       Salvar
-                    </span>
-                    <span className="status return" onClick={handleCancelEdit}>
+                    </button>
+                    <button className="status return" onClick={handleCancelEdit}>
                       Cancelar
-                    </span>
+                    </button>
                   </>
                 ) : (
                   <>
-                    <span
+                    <button
                       className="status delivered"
                       onClick={() => handleEditClick(user)}
                     >
                       Editar
-                    </span>
-                    <span
+                    </button>
+                    <button
                       className="status return"
                       onClick={() => handleDelete(user.id)}
                     >
                       Excluir
-                    </span>
+                    </button>
                   </>
                 )}
               </td>

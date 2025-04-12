@@ -19,7 +19,7 @@ function App() {
           <Route path="/" element={<Navigate to="/login" />} />
           <Route path="/login" element={<Login />} />
           <Route path="/cadastrar" element={<Cadastrar />} />
-          
+
           {/* Rota protegida para home */}
           <Route
             path="/home"
@@ -29,43 +29,41 @@ function App() {
               </ProtectedRoute>
             }
           />
-          
+
           {/* Rota separada para dashboard de usuário comum */}
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute allowedRoles={['user']}>
-                <UserDashboard />
-              </ProtectedRoute>
-            }
-          />
-          
-          {/* Rota separada para dashboard de admin */}
           <Route
             path="/admin-dashboard"
             element={
-              <ProtectedRoute allowedRoles={['admin']}>
+              <ProtectedRoute allowedRoles={["admin"]}>
                 <AdminDashboard />
               </ProtectedRoute>
             }
           />
-          
+          <Route
+            path="/user-dashboard"
+            element={
+              <ProtectedRoute allowedRoles={["user"]}>
+                <UserDashboard />
+              </ProtectedRoute>
+            }
+          />
+
           {/* Outras rotas protegidas */}
-          <Route 
-            path="/analises" 
+          <Route
+            path="/analises"
             element={
               <ProtectedRoute>
                 <Analises />
               </ProtectedRoute>
-            } 
+            }
           />
-          <Route 
-            path="/progresso" 
+          <Route
+            path="/progresso"
             element={
               <ProtectedRoute>
                 <Progresso />
               </ProtectedRoute>
-            } 
+            }
           />
         </Routes>
       </BrowserRouter>

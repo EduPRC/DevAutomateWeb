@@ -1,59 +1,77 @@
-// src/AuthContext.jsx
+// AuthContext.jsx
 import React, { createContext, useState, useContext, useEffect } from "react";
+import { auth } from "./services/conectionFirebase";
+import { onAuthStateChanged } from "firebase/auth";
+import { getDoc, doc } from "firebase/firestore";
+import { db } from "./services/conectionFirebase"; // Importe o db também
 
-// Create the authentication context
 const AuthContext = createContext();
 
-// Custom hook to use the auth context
 export const useAuth = () => useContext(AuthContext);
 
-// Provider component that wraps the app and makes auth object available
 export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [userRole, setUserRole] = useState("");
   const [currentUser, setCurrentUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Check if user is already logged in when app loads
   useEffect(() => {
-    const checkLoggedIn = () => {
-      try {
-        const storedUser = localStorage.getItem("currentUser");
-        
-        if (storedUser) {
-          const user = JSON.parse(storedUser);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      if (firebaseUser) {
+        try {
+          // Buscar informações adicionais do Firestore
+          const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+          const userData = userDoc.exists() ? userDoc.data() : {};
+          
+          const user = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+            role: userData.role || 'user' // Default para 'user' se não houver role definida
+          };
+          
+          localStorage.setItem("currentUser", JSON.stringify(user));
           setCurrentUser(user);
           setUserRole(user.role);
           setIsAuthenticated(true);
+        } catch (error) {
+          console.error("Erro ao buscar dados do usuário:", error);
+          // Fallback básico se houver erro ao acessar Firestore
+          const user = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            name: firebaseUser.displayName || firebaseUser.email.split('@')[0],
+            role: 'user'
+          };
+          setCurrentUser(user);
+          setUserRole('user');
+          setIsAuthenticated(true);
         }
-      } catch (error) {
-        console.error("Error checking authentication state:", error);
+      } else {
+        localStorage.removeItem("currentUser");
+        setCurrentUser(null);
+        setUserRole("");
+        setIsAuthenticated(false);
       }
-      
       setLoading(false);
-    };
+    });
 
-    checkLoggedIn();
+    return () => unsubscribe();
   }, []);
 
-  // Login function - now stores the full user object
   const login = (role, user) => {
     setIsAuthenticated(true);
     setUserRole(role);
     setCurrentUser(user);
   };
 
-  // Logout function
   const logout = () => {
-    // Clear the stored user
     localStorage.removeItem("currentUser");
-    
     setIsAuthenticated(false);
     setUserRole("");
     setCurrentUser(null);
   };
 
-  // Create the value object to share with components
   const value = {
     isAuthenticated,
     userRole,
@@ -65,7 +83,7 @@ export const AuthProvider = ({ children }) => {
 
   return (
     <AuthContext.Provider value={value}>
-      {children}
+      {!loading && children}
     </AuthContext.Provider>
   );
 };
